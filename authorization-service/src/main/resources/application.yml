@@ -9,3 +9,5 @@ spring:
 logging:
   level:
     root: debug
+  main:
+    allow-bean-definition-overriding: true
