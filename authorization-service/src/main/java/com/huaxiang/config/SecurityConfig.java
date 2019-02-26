@@ -12,24 +12,37 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
+    private AuthenticationSuccessHandler authenticationSuccessHandler;
+
+    @Autowired
     private MyUserDetailsService myUserDetailsService;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeRequests()
-                .antMatchers("/oauth/**","/login/**", "/logout").permitAll()
-                .anyRequest().authenticated()   // 其他地址的访问均需验证权限
-                .and()
-                .formLogin()
-                .loginPage("/login")
-                .and()
-                .logout().logoutSuccessUrl("/");
+//        http.authorizeRequests()
+//                .antMatchers("/oauth/**","/login/**", "/logout").permitAll()
+//                .anyRequest().authenticated()   // 其他地址的访问均需验证权限
+//                .and()
+//                .formLogin()
+//                .loginPage("/login")
+//                .and()
+//                .logout().logoutSuccessUrl("/");
+             http
+                  .authorizeRequests()
+                  .antMatchers("/oauth/**").permitAll()
+                  .and()
+                  .formLogin()
+                  .loginProcessingUrl("/oauth/token")
+                  .successHandler(authenticationSuccessHandler);
+
+
     }
 
     @Override

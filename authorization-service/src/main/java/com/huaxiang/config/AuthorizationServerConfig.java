@@ -1,11 +1,20 @@
 package com.huaxiang.config;
 
+import com.huaxiang.support.MyUserDetailsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
+import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
+import org.springframework.security.oauth2.provider.token.store.redis.RedisTokenStore;
 
 import javax.annotation.Resource;
 import javax.sql.DataSource;
@@ -14,35 +23,61 @@ import javax.sql.DataSource;
 @EnableAuthorizationServer
 public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdapter {
 
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
     @Resource
     private DataSource dataSource;
 
-    /**
-     * 配置授权服务器的安全，意味着实际上是/oauth/token端点。
-     * /oauth/authorize端点也应该是安全的
-     * 默认的设置覆盖到了绝大多数需求，所以一般情况下你不需要做任何事情。
-     */
-    @Override
-    public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
-        super.configure(security);
-    }
+    @Autowired
+    private MyUserDetailsService myUserDetailsService;
 
-    /**
-     * 配置ClientDetailsService
-     * 注意，除非你在下面的configure(AuthorizationServerEndpointsConfigurer)中指定了一个AuthenticationManager，否则密码授权方式不可用。
-     * 至少配置一个client，否则服务器将不会启动。
-     */
+//    @Autowired
+//    private RedisConnectionFactory redisConnectionFactory;
+
+//    @Bean
+//    RedisTokenStore redisTokenStore(){
+//        return new RedisTokenStore(redisConnectionFactory);
+//    }
+
     @Override
     public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
-        clients.jdbc(dataSource);
+        clients.withClientDetails(clientDetails());
+    }
+    @Bean
+    public ClientDetailsService clientDetails() {
+        return new JdbcClientDetailsService(dataSource);
+    }
+    @Override
+    public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
+//        endpoints.tokenStore(redisTokenStore())
+//                .userDetailsService(myUserDetailsService)
+//                .authenticationManager(authenticationManager);
+//        endpoints.tokenServices(defaultTokenServices());
+
+        endpoints.userDetailsService(myUserDetailsService);
     }
 
     /**
-     * 该方法是用来配置Authorization Server endpoints的一些非安全特性的，比如token存储、token自定义、授权类型等等的
-     * 默认情况下，你不需要做任何事情，除非你需要密码授权，那么在这种情况下你需要提供一个AuthenticationManager
+     * <p>注意，自定义TokenServices的时候，需要设置@Primary，否则报错，</p>
+     * @return
      */
+//    @Primary
+//    @Bean
+//    public DefaultTokenServices defaultTokenServices(){
+//        DefaultTokenServices tokenServices = new DefaultTokenServices();
+//        tokenServices.setTokenStore(redisTokenStore());
+//        tokenServices.setSupportRefreshToken(true);
+//        tokenServices.setClientDetailsService(clientDetails());
+//        tokenServices.setAccessTokenValiditySeconds(60*60*12); // token有效期自定义设置，默认12小时
+//        tokenServices.setRefreshTokenValiditySeconds(60 * 60 * 24 * 7);//默认30天，这里修改
+//        return tokenServices;
+//    }
+
     @Override
-    public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
-        super.configure(endpoints);
+    public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
+        security.tokenKeyAccess("permitAll()");
+        security .checkTokenAccess("isAuthenticated()");
+        security.allowFormAuthenticationForClients();
     }
 }
